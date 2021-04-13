@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.4.1)
 add_library(entrypoint SHARED
              src/main/cpp/entrypoint.cpp)
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 add_library(lib_bugsnag SHARED IMPORTED)
 set(BUGSNAG_LIB_DIR
     ${CMAKE_SOURCE_DIR}/build/intermediates/bugsnag-libs)

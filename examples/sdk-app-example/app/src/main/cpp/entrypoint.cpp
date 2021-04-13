@@ -1,16 +1,40 @@
 #include <bugsnag.h>
 #include <jni.h>
+#include <stdio.h>
+#include <sys/mman.h>
+#include <unistd.h>
+#include <type_traits>
+
+// Create templated functions to bloat the code section
+template <int COUNT, typename std::enable_if<0 == COUNT>::type* type = nullptr> int count_sum() {
+  volatile char *ptr = (char *)100;
+  *ptr = 0;
+
+  volatile int a = COUNT;
+  return a;
+}
+template <int COUNT, typename std::enable_if<0 != COUNT>::type* type = nullptr> int count_sum() {
+  volatile int a = COUNT;
+  return a + count_sum<COUNT-1>();
+}
 
 extern "C" {
 
-static void __attribute__((used)) somefakefunc(void) {}
+bool on_error(void* event_ptr) {
+  volatile int size = bugsnag_event_get_stacktrace_size(event_ptr);
+  printf("size: %d\n", size);
+  return true;
+}
 
 int crash_write_read_only() {
-  // Write to a read-only page
-  volatile char *ptr = (char *)somefakefunc;
-  *ptr = 0;
+  bugsnag_add_on_error(on_error);
 
-  return 5;
+  // Change memory mapping flags of `count_sum<0>`
+  int64_t pagesize = getpagesize();
+  void* addr = (void*)((int64_t)&count_sum<0> & ~(pagesize - 1));
+  mprotect (addr, 1, PROT_READ | PROT_WRITE | PROT_EXEC);
+
+  return count_sum<1000>();
 }
 
 volatile unsigned uint_f2wk124_dont_optimize_me_bro;
